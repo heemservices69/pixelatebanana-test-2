@@ -1,0 +1,7 @@
+{
+  "name": "pixelatebanana",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PixelateBanana agency site (static) with optional Google Sheets form endpoint",
+  "dependencies": { "googleapis": "^144.0.0" }
+}
