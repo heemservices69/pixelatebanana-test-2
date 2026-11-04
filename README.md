@@ -1,34 +1,31 @@
-# PixelateBanana
+# PixelateBanana (Next.js 14, App Router, TypeScript)
 
-Static site (`index.html`, no build step). Forms are preview-only until you wire them to `/api/submit` (optional, see below).
+## Structure
+`app/` routes and API · `components/{navigation,sections,cards,forms,animations,ui}` · `lib/` content, SEO, validation, mail, analytics · `styles/globals.css` · `public/{brand,projects,images}`.
 
-## Run locally (VS Code)
-1. Open the folder in VS Code (File > Open Folder).
-2. Install the "Live Server" extension, right-click `index.html` > Open with Live Server.
-   (Or in a terminal: `npx serve .`)
-3. For the Google Sheets endpoint too: `npm i -g vercel`, `npm install`, then `vercel dev`.
-
-## GitHub
+## Run
 ```
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/YOUR_USER/pixelatebanana.git
-git push -u origin main
+npm install
+cp .env.example .env.local   # fill in values
+npm run dev                  # http://localhost:3000
+npm run typecheck && npm run build
 ```
-Check `git status` first: `.env*` files must NOT be listed.
 
-## Vercel (temporary hosting)
-1. vercel.com > Add New > Project > import the GitHub repo.
-2. Framework preset: Other. No build command, no output directory. Deploy.
-3. You get a free `*.vercel.app` URL. (Or CLI: `vercel`, then `vercel --prod`.)
+## Where things live
+- **Edit copy/services/case studies/posts:** `lib/content.ts`. New case study = add one object; page, sitemap and metadata follow automatically.
+- **Quote form:** `components/forms/QuoteForm.tsx` (UI) + `app/api/inquiry/route.ts` (server validation, honeypot, timing check, rate limit) + `lib/validation.ts` (shared rules).
+- **Chat form:** `app/chat/page.tsx` + `components/forms/ChatForm.tsx` + `app/api/chat/route.ts` (name, company, contact info, message; same protections as the quote form).
+- **Google Sheets (optional):** `lib/sheets.ts`. Set `GOOGLE_SHEET_ID`, `GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY` in `.env.local` / Vercel. Share the Sheet with the service-account email (Editor). Tabs `Quotes` and `Chat`, row 1: Time, Name, Company, Contact, Phone, Service, Budget, Message. Works alongside Resend email, or on its own.
+- **Social links:** `SOCIAL` in `lib/site.ts` (placeholders: replace with your real profiles).
+- **Secrets:** `RESEND_API_KEY`, `INQUIRY_FROM`, `INQUIRY_TO` are server-only env vars. Never prefix them with `NEXT_PUBLIC_`.
+- **Analytics:** `<Analytics />` in `app/layout.tsx` for traffic. Custom events: `cta_click`, `inquiry_submit`, `inquiry_success`, `inquiry_error` (`lib/analytics.ts`). Enable Web Analytics in the Vercel project.
+- **SEO:** per-page `pageMeta()` (title, description, canonical, OpenGraph), `app/sitemap.ts`, `app/robots.ts`, JSON-LD. Set `NEXT_PUBLIC_SITE_URL`.
+- **AdSense:** three placements, one ad unit each (`sidebar`, `feed`, `article` in `components/ui/AdSlot.tsx`). Set `NEXT_PUBLIC_ADSENSE_CLIENT` plus `NEXT_PUBLIC_ADSENSE_SLOT_SIDEBAR / _FEED / _ARTICLE`. Empty slot IDs render nothing in production. Ads and the AdSense script load only after the visitor accepts the consent banner (`components/ui/ConsentBanner.tsx`, `lib/consent.ts`). For EU/UK traffic Google requires a certified consent tool: turn on Google's *Privacy & messaging* in AdSense and set `NEXT_PUBLIC_CONSENT_MODE=google`. Update `public/ads.txt` after approval.
+- **Images:** the demo uses generated pixel SVGs. Put real images in `public/projects/` and use `next/image` (AVIF/WebP, lazy-loaded).
+- **Accessibility:** skip link, visible focus, labelled form fields with error text, `prefers-reduced-motion` support.
 
-## Google Sheets (optional)
-One Google Sheet with two tabs named `Quotes` and `Chat`, one Google Cloud service account.
-1. console.cloud.google.com > new project > enable "Google Sheets API".
-2. IAM > Service Accounts > create > Keys > Add key > JSON (download it, keep it out of the project folder).
-3. Share the Sheet with the service account's `client_email` as Editor.
-4. Local: copy `.env.example` to `.env.local` and fill in values from the JSON file.
-5. Vercel: Project > Settings > Environment Variables, add the same 3 names, then redeploy.
-6. Row 1 headers (both tabs): Time, Name, Company, Contact, Phone, Service, Budget, Message.
+## Deploy
+Push to GitHub, import the repo at vercel.com/new (framework: Next.js, defaults), add the env vars, deploy. Every push to `main` redeploys.
+
+## Notes
+All case studies are concept projects and are labelled as such. Legal pages are templates: have them reviewed. The in-memory rate limiter is best-effort; use Vercel KV/Upstash for strict limits.
