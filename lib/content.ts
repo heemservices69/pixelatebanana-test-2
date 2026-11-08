@@ -1,3 +1,4 @@
+import adminData from '@/data/admin-content.json';
 export type ServiceItem = { name: string; text: string; tags: string[] };
 export type Service = { slug: string; title: string; emoji: string; intro: string; items: ServiceItem[] };
 export type Work = { slug: string; title: string; category: string; concept: boolean; seed: number; scenario: string; challenge: string; strategy: string; execution: string; deliverables: string[]; value: string };
@@ -21,7 +22,7 @@ export const SERVICES: Service[] = [
     { name: 'Messaging & tone', text: 'Taglines, voice and key messages for every touchpoint.', tags: ['Voice', 'Copy', 'Naming'] } ] },
 ];
 
-export const WORK: Work[] = [
+export const BASE_WORK: Work[] = [
   { slug: 'fruitly-store-redesign', title: 'Fruitly', category: 'E-commerce redesign', concept: true, seed: 1,
     scenario: 'A fictional fresh-produce subscription brand with a dated store and a checkout that lost shoppers on mobile.',
     challenge: 'Slow pages, cluttered navigation and a seven-step checkout made repeat ordering harder than it should be.',
@@ -45,7 +46,7 @@ export const WORK: Work[] = [
     value: 'Intended to cut manual handling time and shorten first-response time for customers.' },
 ];
 
-export const POSTS: Post[] = [
+export const BASE_POSTS: Post[] = [
   { slug: 'website-speed-is-seo', title: 'Why site speed is your best SEO move', date: '2026-10-20', excerpt: 'Fast pages rank better, convert better and cost less to serve.', body: [
     'Core Web Vitals measure how quickly a page loads, responds and stays stable. Search engines and visitors both notice when those numbers are poor.',
     'Start with the basics: compress and lazy-load images, ship less JavaScript and serve pages from a CDN.',
@@ -58,3 +59,9 @@ export const POSTS: Post[] = [
     'A strong position names who you serve, what you change for them and why you are different.',
     'Write the sentence, test it on customers and repeat it everywhere: site, pitch deck and social bios.' ] },
 ];
+
+// Items added or removed through the admin area are stored in data/admin-content.json
+type AdminData = { work: Work[]; posts: Post[]; removed: { work: string[]; posts: string[] } };
+const admin = adminData as unknown as AdminData;
+export const WORK: Work[] = [...BASE_WORK.filter((w) => !admin.removed.work.includes(w.slug)), ...admin.work];
+export const POSTS: Post[] = [...BASE_POSTS.filter((p) => !admin.removed.posts.includes(p.slug)), ...admin.posts].sort((a, b) => b.date.localeCompare(a.date));
