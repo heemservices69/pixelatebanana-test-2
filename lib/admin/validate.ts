@@ -6,6 +6,15 @@ const clean = (v: unknown, max: number, multi = false) => {
 };
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const slugify = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80).replace(/-+$/, '');
+const IMAGE = /^\/uploads\/[a-z0-9-]+\.(?:png|jpg|webp|gif)$/;
+/** Returns '' when empty, null when invalid, otherwise the normalised http(s) address. */
+function cleanUrl(v: unknown): string | null {
+  const x = String(v ?? '').trim();
+  if (!x) return '';
+  if (x.length > 300) return null;
+  try { const u = new URL(/^[a-z][a-z0-9+.-]*:/i.test(x) ? x : 'https://' + x); return (u.protocol === 'https:' || u.protocol === 'http:') && u.hostname.includes('.') ? u.href : null; } catch { return null; }
+}
+const cleanImage = (v: unknown) => { const x = String(v ?? '').trim(); return IMAGE.test(x) ? x : ''; };
 type R<T> = { item: T } | { error: string };
 
 export function parseWork(r: Record<string, unknown>): R<Work> {
@@ -18,8 +27,12 @@ export function parseWork(r: Record<string, unknown>): R<Work> {
   if (!SLUG.test(slug)) return { error: 'Slug may contain lowercase letters, numbers and hyphens only.' };
   if (!scenario || !challenge || !strategy || !execution || !value) return { error: 'Scenario, challenge, strategy, execution and business value are required.' };
   if (!deliverables.length) return { error: 'Add at least one deliverable (one per line).' };
+  const url = cleanUrl(r.url);
+  if (!url) return { error: url === null ? 'Enter a valid website URL (for example https://example.com).' : 'Website URL is required for a case study.' };
+  const image = cleanImage(r.image);
+  const images = (Array.isArray(r.images) ? r.images : []).map(cleanImage).filter(Boolean).slice(0, 12);
   const seed = ([...slug].reduce((a, c) => a + c.charCodeAt(0), 0) % 90) + 4;
-  return { item: { slug, title, category, concept: r.concept !== false, seed, scenario, challenge, strategy, execution, deliverables, value } };
+  return { item: { slug, title, category, concept: r.concept !== false, seed, scenario, challenge, strategy, execution, deliverables, value, url, ...(image ? { image } : {}), ...(images.length ? { images } : {}) } };
 }
 
 export function parsePost(r: Record<string, unknown>): R<Post> {
@@ -31,5 +44,8 @@ export function parsePost(r: Record<string, unknown>): R<Post> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date) return { error: 'Date must be a real date in YYYY-MM-DD format.' };
   if (excerpt.length < 10) return { error: 'Excerpt is required (10+ characters).' };
   if (!body.length) return { error: 'Add at least one paragraph of body text (separate paragraphs with a blank line).' };
-  return { item: { slug, title, date, excerpt, body } };
+  const url = cleanUrl(r.url);
+  if (url === null) return { error: 'Enter a valid website URL (for example https://example.com), or leave it empty.' };
+  const image = cleanImage(r.image);
+  return { item: { slug, title, date, excerpt, body, ...(url ? { url } : {}), ...(image ? { image } : {}) } };
 }

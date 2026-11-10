@@ -1,5 +1,6 @@
 'use client';
 import { useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Row } from '@/lib/admin/store';
 
@@ -27,7 +28,29 @@ export default function AdminPanel({ work, posts, storage }: { work: Row[]; post
   async function add(e: FormEvent<HTMLFormElement>, type: Kind) {
     e.preventDefault(); const form = e.currentTarget; const fd = new FormData(form);
     const item: Record<string, unknown> = Object.fromEntries(fd.entries());
+    delete item.image; delete item.images;
     if (type === 'work') item.concept = fd.get('concept') === 'on';
+    const main = fd.get('image');
+    const more = fd.getAll('images').filter((f): f is File => f instanceof File && f.size > 0);
+    const files: { key: 'image' | 'images'; file: File }[] = [
+      ...(main instanceof File && main.size > 0 ? [{ key: 'image' as const, file: main }] : []),
+      ...more.map((file) => ({ key: 'images' as const, file })),
+    ];
+    if (files.length) {
+      setBusy(true); setMsg(null);
+      try {
+        const extra: string[] = [];
+        for (const { key, file } of files) {
+          const up = new FormData(); up.append('file', file);
+          const r = await fetch('/api/admin/upload', { method: 'POST', body: up });
+          const j = await r.json().catch(() => ({}));
+          if (r.status === 401) { router.refresh(); return; }
+          if (!r.ok) { setMsg({ ok: false, t: j.error || 'Image upload failed.' }); return; }
+          if (key === 'image') item.image = j.path; else extra.push(j.path);
+        }
+        if (extra.length) item.images = extra;
+      } catch { setMsg({ ok: false, t: 'Network error while uploading the images. Please try again.' }); return; } finally { setBusy(false); }
+    }
     if (await call('POST', { type, item })) form.reset();
   }
   async function remove(type: Kind, r: Row) {
@@ -44,7 +67,7 @@ export default function AdminPanel({ work, posts, storage }: { work: Row[]; post
     <div className="tech">
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <h1 style={{ margin: 0 }}>Admin</h1>
-        <button type="button" className="btn" onClick={logout}>Log out</button>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}><Link className="btn y" href="/login/admin/live-projects">Live projects</Link><button type="button" className="btn" onClick={logout}>Log out</button></div>
       </div>
       <p style={{ marginTop: 16 }}>Storage: {storage}. Changes to the live site appear after a redeploy.</p>
       <div style={{ display: 'flex', gap: 10, margin: '20px 0' }} role="tablist">
@@ -67,7 +90,9 @@ export default function AdminPanel({ work, posts, storage }: { work: Row[]; post
         <form onSubmit={(e) => add(e, 'work')} aria-label="Add case study">
           <label>Title *<input name="title" maxLength={80} required /></label>
           <label>Category *<input name="category" maxLength={60} required /></label>
-          <label>URL slug (optional, made from the title if empty)<input name="slug" maxLength={80} pattern="[a-z0-9]+(-[a-z0-9]+)*" /></label>
+          <label>Image (optional: PNG, JPG, WebP or GIF, up to 4 MB)<input name="image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /></label>
+          <label>More pictures for the Images &amp; mockups section (optional, you can choose several)<input name="images" type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif" /></label>
+          <label>Website URL *<input name="url" type="url" inputMode="url" placeholder="https://example.com" maxLength={300} required /></label>
           <label><input type="checkbox" name="concept" defaultChecked style={{ width: 'auto', marginRight: 8 }} />Concept project (shows the disclaimer)</label>
           <label>Business scenario *<textarea name="scenario" rows={3} maxLength={1000} required /></label>
           <label>The challenge *<textarea name="challenge" rows={3} maxLength={1000} required /></label>
@@ -81,7 +106,8 @@ export default function AdminPanel({ work, posts, storage }: { work: Row[]; post
         <form onSubmit={(e) => add(e, 'posts')} aria-label="Add insight">
           <label>Title *<input name="title" maxLength={120} required /></label>
           <label>Date *<input name="date" type="date" defaultValue={today} required /></label>
-          <label>URL slug (optional, made from the title if empty)<input name="slug" maxLength={80} pattern="[a-z0-9]+(-[a-z0-9]+)*" /></label>
+          <label>Image (optional: PNG, JPG, WebP or GIF, up to 4 MB)<input name="image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" /></label>
+          <label>Website URL (optional)<input name="url" type="url" inputMode="url" placeholder="https://example.com" maxLength={300} /></label>
           <label>Excerpt *<textarea name="excerpt" rows={2} maxLength={300} required /></label>
           <label>Body * (separate paragraphs with a blank line)<textarea name="body" rows={10} required /></label>
           <button className="btn" type="submit" disabled={busy}>{busy ? '⏳ Saving…' : 'Add insight'}</button>

@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 import { pageMeta } from '@/lib/seo';
 import JsonLd from '@/components/ui/JsonLd';
 import AdSlot from '@/components/ui/AdSlot';
+import UploadedImage from '@/components/ui/UploadedImage';
+import VisitButton from '@/components/ui/VisitButton';
 import CtaBand from '@/components/sections/CtaBand';
 import { POSTS } from '@/lib/content';
 import { SITE } from '@/lib/site';
@@ -17,6 +19,8 @@ export default function Post({ params }: { params: { slug: string } }) {
     <>
       <article className="wrap page-pad">
         <time dateTime={p.date} style={{ fontFamily: 'var(--mono)' }}>{p.date}</time><h1 className="big" style={{ margin: '12px 0 30px' }}>{p.title}</h1>
+        {p.image && <div style={{ maxWidth: 700, marginBottom: 24 }}><UploadedImage src={p.image} label={p.title} /></div>}
+        {p.url && <p><VisitButton url={p.url} /></p>}
         {p.body.map((t, i) => <div key={i}><p style={{ maxWidth: 700, fontSize: 18 }}>{t}</p>{i === 0 && <AdSlot placement="article" />}</div>)}
         <JsonLd data={{ '@context': 'https://schema.org', '@type': 'Article', headline: p.title, datePublished: p.date, author: { '@type': 'Organization', name: SITE.name }, mainEntityOfPage: `${SITE.url}/insights/${p.slug}` }} />
       </article>

@@ -1,8 +1,8 @@
 import adminData from '@/data/admin-content.json';
 export type ServiceItem = { name: string; text: string; tags: string[] };
 export type Service = { slug: string; title: string; emoji: string; intro: string; items: ServiceItem[] };
-export type Work = { slug: string; title: string; category: string; concept: boolean; seed: number; scenario: string; challenge: string; strategy: string; execution: string; deliverables: string[]; value: string };
-export type Post = { slug: string; title: string; date: string; excerpt: string; body: string[] };
+export type Work = { slug: string; title: string; category: string; concept: boolean; seed: number; scenario: string; challenge: string; strategy: string; execution: string; deliverables: string[]; value: string; image?: string; images?: string[]; url?: string };
+export type Post = { slug: string; title: string; date: string; excerpt: string; body: string[]; image?: string; url?: string };
 
 export const SERVICES: Service[] = [
   { slug: 'website-apps', title: 'We Design & Develop', emoji: '🖥️', intro: 'We create web, cross-platform & native app with cyber security being our first priority.', items: [

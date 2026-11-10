@@ -67,8 +67,10 @@ async function updateExtra(message: string, fn: (d: Extra) => Extra | string): P
 function add<T extends { slug: string }>(key: 'work' | 'posts', base: T[], item: T) {
   return updateExtra(`admin: add ${key} ${item.slug}`, (d) => {
     const list = d[key] as unknown as T[];
-    if ([...base, ...list].some((x) => x.slug === item.slug) || d.removed[key].includes(item.slug)) return 'That slug is already used.';
-    list.push(item);
+    const taken = (s: string) => [...base, ...list].some((x) => x.slug === s) || d.removed[key].includes(s);
+    let slug = item.slug;
+    for (let n = 2; taken(slug); n++) slug = `${item.slug.slice(0, 70)}-${n}`;
+    list.push({ ...item, slug });
     return d;
   });
 }
